@@ -19,9 +19,8 @@ describe("util functions", () => {
 	});
 	beforeEach(async done => {
 		initLogger();
-		await initModels();
+		await initModels(true);
 		await helpers.clearDatabase();
-		await helpers.createOffers();
 		helpers.patchDependencies();
 
 		done();
@@ -53,7 +52,7 @@ describe("util functions", () => {
 				minute_total_earn: 300,
 				daily_user_earn: 500
 			};
-			const app: Application = await helpers.createApp(limits);
+			const app: Application = await helpers.createApp({ limits });
 			for (let i = 0; i < 3; i++) {
 				await assertRateLimitAppEarn(app.id, app.config.limits.minute_total_earn, moment.duration({ minutes: 1 }), 100);
 			}
@@ -69,7 +68,6 @@ describe("util functions", () => {
 					throw e;
 				}
 			}
-			await app.remove();
 		});
 
 		test("random() should return a new number [0, 1) for each invocation", () => {

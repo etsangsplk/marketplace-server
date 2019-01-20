@@ -14,7 +14,7 @@ import * as helpers from "../helpers";
 
 describe("api tests for /users", async () => {
 	beforeAll(async done => {
-		await initModels();
+		await initModels(true);
 		helpers.patchDependencies();
 		done();
 	});

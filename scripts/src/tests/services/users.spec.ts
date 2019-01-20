@@ -15,7 +15,7 @@ import * as helpers from "../helpers";
 
 describe("api tests for /users", async () => {
 	beforeAll(async done => {
-		await initModels();
+		await initModels(true);
 		helpers.patchDependencies();
 		done();
 	});
@@ -137,16 +137,16 @@ describe("api tests for /users", async () => {
 	});
 
 	test("userExists", async () => {
-		const app = await helpers.createApp();
-		const user = await helpers.createUser({ appId: app.id });
+		const myApp = await helpers.createApp();
+		const user = await helpers.createUser({ appId: myApp.id });
 		expect(await userExists(user.appId, user.appUserId)).toBeTruthy();
 		expect(await userExists("another-app", user.appUserId)).toBeFalsy();
 		expect(await userExists(user.appId, "another-user-id")).toBeFalsy();
 	});
 
 	test("logout", async () => {
-		const app = await helpers.createApp();
-		const user = await helpers.createUser({ appId: app.id });
+		const myApp = await helpers.createApp();
+		const user = await helpers.createUser({ appId: myApp.id });
 		let token = (await AuthToken.findOne({ userId: user.id }))!;
 		expect(token.valid).toBeTruthy();
 
@@ -190,9 +190,9 @@ describe("api tests for /users", async () => {
 	});
 
 	test("testSign", async () => {
-		const app = await helpers.createApp();
+		const myApp = await helpers.createApp();
 		const payload = { test: "test" };
-		const jwt = await helpers.signJwt(app.id, "subject", payload);
+		const jwt = await helpers.signJwt(myApp.id, "subject", payload);
 		const res = await verify<{ test: string }, "test_subject">(jwt);
 		expect(res.payload.test).toEqual(payload.test);
 	});
@@ -201,9 +201,9 @@ describe("api tests for /users", async () => {
 		let jwt: string;
 		let payload: object;
 
-		const app = await helpers.createApp();
+		const myApp = await helpers.createApp();
 		payload = {}; // no user_id
-		jwt = await helpers.signJwt(app.id, "subject", payload);
+		jwt = await helpers.signJwt(myApp.id, "subject", payload);
 		await expect(validateRegisterJWT(jwt)).rejects.toThrow();
 
 		payload = {
@@ -254,24 +254,24 @@ describe("api tests for /users", async () => {
 			"44": "2",
 			"45": "}"
 		}; // jwt from failed request
-		jwt = await helpers.signJwt(app.id, "subject", payload);
+		jwt = await helpers.signJwt(myApp.id, "subject", payload);
 		await expect(validateRegisterJWT(jwt)).rejects.toThrow();
 
 		payload = {};
-		jwt = await helpers.signJwt(app.id, "", payload); // InvalidExternalOrderJwt, sub is not in earn/spend/pay_to_user
+		jwt = await helpers.signJwt(myApp.id, "", payload); // InvalidExternalOrderJwt, sub is not in earn/spend/pay_to_user
 		await expect(validateExternalOrderJWT(jwt, "user_id", "device_id")).rejects.toThrow();
 
 		payload = {}; // no offer in earn/spend/pay_to_user JWTs
-		jwt = await helpers.signJwt(app.id, "spend", payload);
+		jwt = await helpers.signJwt(myApp.id, "spend", payload);
 		await expect(validateExternalOrderJWT(jwt, "user_id", "device_id")).rejects.toThrow();
 		payload = { offer: "offer" }; // no sender
-		jwt = await helpers.signJwt(app.id, "spend", payload);
+		jwt = await helpers.signJwt(myApp.id, "spend", payload);
 		await expect(validateExternalOrderJWT(jwt, "user_id", "device_id")).rejects.toThrow();
 		payload = { offer: "offer" }; // no recipient
-		jwt = await helpers.signJwt(app.id, "earn", payload);
+		jwt = await helpers.signJwt(myApp.id, "earn", payload);
 		await expect(validateExternalOrderJWT(jwt, "user_id", "device_id")).rejects.toThrow();
 		payload = { offer: "offer" }; // no sender, recipient
-		jwt = await helpers.signJwt(app.id, "pay_to_user", payload);
+		jwt = await helpers.signJwt(myApp.id, "pay_to_user", payload);
 		await expect(validateExternalOrderJWT(jwt, "user_id", "device_id")).rejects.toThrow();
 	});
 });

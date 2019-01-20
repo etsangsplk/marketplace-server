@@ -26,14 +26,13 @@ import { TransactionTimeout } from "../../errors";
 
 import * as helpers from "../helpers";
 
-describe("test orders", async () => {
+describe("test v1 orders", async () => {
 	jest.setTimeout(20000);
 
 	beforeAll(async done => {
 		initLogger();
-		await initModels();
+		await initModels(true);
 		await helpers.clearDatabase();
-		await helpers.createOffers();
 		helpers.patchDependencies();
 
 		done();
@@ -89,8 +88,8 @@ describe("test orders", async () => {
 
 	test("filter order by offer_id", async () => {
 		const deviceId = "test_device_id";
-		const app = await helpers.createApp();
-		const user = await helpers.createUser({ appId: app.id, deviceId });
+		const myApp = await helpers.createApp();
+		const user = await helpers.createUser({ appId: myApp.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		console.log(offers);
 
@@ -120,8 +119,8 @@ describe("test orders", async () => {
 
 	test("getOrderHistory limit", async () => {
 		const deviceId = "test_device_id";
-		const app = await helpers.createApp();
-		const user = await helpers.createUser({ appId: app.id, deviceId });
+		const myApp = await helpers.createApp();
+		const user = await helpers.createUser({ appId: myApp.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		for (let i = 0; i < offers.offers.length && i < 4; i++) {
 			const offerId = offers.offers[i].id;
@@ -323,9 +322,9 @@ describe("test orders", async () => {
 	});
 
 	test("only app offers should return", async () => {
-		const app = await helpers.createApp();
+		const app = await helpers.createApp({ withOffers: false });
 		const user = await helpers.createUser({ appId: app.id });
-		const offers = await Offer.find();
+		const offers = await helpers.createOffers();
 		const offersIds: string[] = [];
 
 		// add even offers to app

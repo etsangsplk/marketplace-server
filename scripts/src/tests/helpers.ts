@@ -7,7 +7,7 @@ import * as StellarSdk from "stellar-sdk";
 import { generateId, readKeysDir, random, IdPrefix } from "../utils/utils";
 import { Asset, Offer } from "../models/offers";
 import { User, AuthToken } from "../models/users";
-import { Application, ApplicationConfig, StringMap } from "../models/applications";
+import { Application, ApplicationConfig, AppOffer, StringMap } from "../models/applications";
 import { LimitConfig } from "../config";
 import { createEarn, createSpend } from "../create_data/offers";
 import { Poll, PageType } from "../public/services/offer_contents";
@@ -90,6 +90,7 @@ export async function createOrders(userId: string): Promise<number> {
 	await order.save();
 
 	offers = await Offer.find({ where: { type: "earn" }, take: 3 });
+
 	order = await orderFromOffer(offers[0], userId);
 	order.status = "completed";
 	await order.save();
@@ -168,27 +169,41 @@ export async function createP2POrder(userId: string): Promise<Order> {
 	return order;
 }
 
-export async function createOffers() {
+export async function createOffers(appId?: string): Promise<Offer[]> {
 	const uniqueId = generateId();
+	const appIds = appId ? [appId] : [];
 
+	const offers = [];
 	for (let i = 0; i < 5; i += 1) {
-		await createEarn(
+		const offer = await createEarn(
 			`${ uniqueId }_earn${ i }`,
 			"GBOQY4LENMPZGBROR7PE5U3UXMK22OTUBCUISVEQ6XOQ2UDPLELIEC4J",
-			`earn${ i }`, `earn${ i }`, `earn${ i }`, `earn${ i }`, 100, 30, 1, `earn${ i }`, `earn${ i }`, "poll", animalPoll, ["ALL"]
+			`earn${ i }`, `earn${ i }`, `earn${ i }`, `earn${ i }`,
+			100, 30, 1, `earn${ i }`, `earn${ i }`,
+			"poll", animalPoll, appIds
 		);
+		if (offer) {
+			offers.push(offer);
+		}
 	}
 
 	for (let i = 0; i < 5; i += 1) {
-		await createSpend(
+		const offer = await createSpend(
 			`${ uniqueId }_spend${ i }`,
 			"GBOQY4LENMPZGBROR7PE5U3UXMK22OTUBCUISVEQ6XOQ2UDPLELIEC4J",
-			`spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`, 100, 30, 3, `spend${ i }`, `spend${ i }`,
-			`spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`,
+			`spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`,
+			100, 30, 3, `spend${ i }`, `spend${ i }`,
+			`spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`,
+			`spend${ i }`, `spend${ i }`,
 			`spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`, `spend${ i }`,
-			[`spend${ i }_1`, `spend${ i }_2`, `spend${ i }_3`, `spend${ i }_4`, `spend${ i }_5`], ["ALL"]
+			[`spend${ i }_1`, `spend${ i }_2`, `spend${ i }_3`, `spend${ i }_4`, `spend${ i }_5`],
+			appIds
 		);
+		if (offer) {
+			offers.push(offer);
+		}
 	}
+	return offers;
 }
 
 export async function completePayment(orderId: string) {
@@ -253,7 +268,7 @@ export async function signJwt(appId: string, subject: string, payload: object) {
 	});
 }
 
-export async function createApp(limits?: LimitConfig): Promise<Application> {
+export async function createApp(options: { limits?: LimitConfig, withOffers?: boolean } = {}): Promise<Application> {
 	const address = getKeyPair().public;
 	const appConfig: ApplicationConfig = {
 		max_user_wallets: null,
@@ -267,8 +282,8 @@ export async function createApp(limits?: LimitConfig): Promise<Application> {
 			daily_user_earn: 5000
 		}
 	};
-	if (limits) { // for RateLimits tests passed limits has low value
-		appConfig.limits = limits;
+	if (options.limits) { // for RateLimits tests passed limits has low value
+		appConfig.limits = options.limits;
 	}
 	// all apps created during tests will have the same keys
 	const jwtPublicKeys: StringMap = {};
@@ -284,6 +299,9 @@ export async function createApp(limits?: LimitConfig): Promise<Application> {
 		config: appConfig
 	});
 	await app.save();
+	if (options.withOffers !== false) {
+		await createOffers(app.id);
+	}
 	return app;
 }
 

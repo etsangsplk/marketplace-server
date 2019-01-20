@@ -36,14 +36,13 @@ async function completeOrder(user: User, deviceId: string) {
 	return order;
 }
 
-describe("test orders", async () => {
+describe("test v2 orders", async () => {
 	jest.setTimeout(20000);
 
 	beforeAll(async done => {
 		initLogger();
-		await initModels();
+		await initModels(true);
 		await helpers.clearDatabase();
-		await helpers.createOffers();
 		helpers.patchDependencies();
 
 		localCache.clear();
@@ -452,6 +451,7 @@ describe("test orders", async () => {
 		const deviceId = "test_device_id";
 		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, { type: "spend" });
+		console.log("got offers", offers);
 
 		// not passing failureDate
 		{
@@ -596,8 +596,6 @@ describe("test orders", async () => {
 		const [user1, deviceId1, app1] = await create();
 		const [user2, deviceId2, app2] = await create();
 
-		await helpers.createOffers();
-
 		const offers1 = (await getOffers(user1.id, app1.id, {})).offers;
 		const offers2 = (await getOffers(user2.id, app2.id, {})).offers;
 
@@ -639,7 +637,6 @@ describe("test orders", async () => {
 
 	test("one user, two wallets on two devices", async () => {
 		const app = await helpers.createApp();
-		await helpers.createOffers();
 
 		const deviceId1 = `device_${ generateId() }`;
 		const deviceId2 = `device_${ generateId() }`;
@@ -670,7 +667,6 @@ describe("test orders", async () => {
 
 	test("one user, one wallet on two devices", async () => {
 		const app = await helpers.createApp();
-		await helpers.createOffers();
 
 		const deviceId1 = `device_${ generateId() }`;
 		const walletAddress = `wallet-${ generateId() }`;
