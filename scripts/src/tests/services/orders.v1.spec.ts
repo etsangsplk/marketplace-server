@@ -46,7 +46,8 @@ describe("test orders", async () => {
 	});
 
 	test("getAll and filters", async () => {
-		const user = await helpers.createUser();
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id });
 		const count = await helpers.createOrders(user.id);
 
 		let orders = await Order.getAll({ userId: user.id, status: "!opened" }, 25);
@@ -69,7 +70,8 @@ describe("test orders", async () => {
 
 	test("offer list returns an offer with my open order", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		const offer = offers.offers.find(x => x.offer_type === "earn");
 
@@ -87,7 +89,8 @@ describe("test orders", async () => {
 
 	test("filter order by offer_id", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		console.log(offers);
 
@@ -117,7 +120,8 @@ describe("test orders", async () => {
 
 	test("getOrderHistory limit", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		for (let i = 0; i < offers.offers.length && i < 4; i++) {
 			const offerId = offers.offers[i].id;
@@ -144,7 +148,8 @@ describe("test orders", async () => {
 
 	test("return same order when one is open", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		const order = await createMarketplaceOrder(offers.offers[0].id, user, deviceId);
 		const order2 = await createMarketplaceOrder(offers.offers[0].id, user, deviceId);
@@ -154,7 +159,8 @@ describe("test orders", async () => {
 
 	test("countToday counts todays completed orders", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		expect(await Order.countToday(user.id, "earn", "marketplace")).toEqual(0);
 
 		const offers = await getOffers(user.id, user.appId, {});
@@ -189,7 +195,8 @@ describe("test orders", async () => {
 
 	test("return getOrder reduces cap", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		const appOffer = (await AppOffer.findOne({ offerId: offers.offers[0].id, appId: user.appId }))!;
 
@@ -253,7 +260,8 @@ describe("test orders", async () => {
 	test("expiration on openOrder is 10 minutes", async () => {
 		const now = moment();
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, {});
 		const offer = (await Offer.findOneById(offers.offers[0].id))!;
 		const openOrder = await createMarketplaceOrder(offer.id, user, deviceId);
@@ -262,7 +270,8 @@ describe("test orders", async () => {
 
 	test("changeOrder adds error and changes to fail", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, { type: "spend" });
 		const openOrder = await createMarketplaceOrder(offers.offers[0].id, user, deviceId);
 		await submitOrder(openOrder.id, user, deviceId, "{}");
@@ -286,7 +295,8 @@ describe("test orders", async () => {
 
 	test("order setFailure date", async () => {
 		const deviceId = "test_device_id";
-		const user = await helpers.createUser({ deviceId });
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id, deviceId });
 		const offers = await getOffers(user.id, user.appId, { type: "spend" });
 
 		// not passing failureDate
@@ -313,7 +323,7 @@ describe("test orders", async () => {
 	});
 
 	test("only app offers should return", async () => {
-		const app = await helpers.createApp(generateId(IdPrefix.App));
+		const app = await helpers.createApp();
 		const user = await helpers.createUser({ appId: app.id });
 		const offers = await Offer.find();
 		const offersIds: string[] = [];
@@ -346,9 +356,9 @@ describe("test orders", async () => {
 	test("offer cap is not shared between apps", async () => {
 		const offer = (await Offer.findOne())!;
 
-		async function createAppUser(offer: Offer, appId: string): Promise<[User, string]> {
+		async function createAppUser(offer: Offer): Promise<[User, string]> {
 			const deviceId = generateId();
-			const app = await helpers.createApp(appId);
+			const app = await helpers.createApp();
 			const user = await helpers.createUser({ appId: app.id, deviceId });
 			await AppOffer.create({
 				appId: app.id,
@@ -360,8 +370,8 @@ describe("test orders", async () => {
 			return [user, deviceId];
 		}
 
-		const [user1, deviceId1] = await createAppUser(offer, generateId(IdPrefix.App));
-		const [user2, deviceId2] = await createAppUser(offer, generateId(IdPrefix.App));
+		const [user1, deviceId1] = await createAppUser(offer);
+		const [user2, deviceId2] = await createAppUser(offer);
 
 		const openOrder = await createMarketplaceOrder(offer.id, user1, deviceId1);
 		const order = await submitOrder(openOrder.id, user1, deviceId1, "{}");

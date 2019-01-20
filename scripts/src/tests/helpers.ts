@@ -4,7 +4,7 @@ import * as moment from "moment";
 import { getManager } from "typeorm";
 import * as StellarSdk from "stellar-sdk";
 
-import { generateId, readKeysDir, random } from "../utils/utils";
+import { generateId, readKeysDir, random, IdPrefix } from "../utils/utils";
 import { Asset, Offer } from "../models/offers";
 import { User, AuthToken } from "../models/users";
 import { Application, ApplicationConfig, StringMap } from "../models/applications";
@@ -29,12 +29,12 @@ const animalPoll: Poll = {
 	}],
 };
 
-export async function createUser(options: { appId?: string; deviceId?: string; createWallet?: boolean } = {}): Promise<User> {
+export async function createUser(options: { appId: string; deviceId?: string; createWallet?: boolean }): Promise<User> {
 	const uniqueId = generateId();
 	const deviceId = options.deviceId || `test_device_${ uniqueId }`;
 	const userData = {
 		appUserId: `test_user_${ uniqueId }`,
-		appId: options.appId || (await Application.findOne())!.id
+		appId: options.appId
 	} as User;
 
 	const user = await (User.new(Object.assign(userData, { isNew: true }))).save();
@@ -135,7 +135,7 @@ export async function createExternalOrder(userId: string): Promise<Order> {
 
 export async function createP2POrder(userId: string): Promise<Order> {
 	const sender = await User.findOneById(userId);
-	const recipient = await createUser();
+	const recipient = await createUser({ appId: sender!.appId });
 
 	const order = P2POrder.new({
 		amount: 65,
@@ -148,6 +148,7 @@ export async function createP2POrder(userId: string): Promise<Order> {
 		}
 	}, {
 		user: sender,
+		wallet: "G123123123123",
 		type: "earn",
 		meta: {
 			title: "p2p order #1",
@@ -155,6 +156,7 @@ export async function createP2POrder(userId: string): Promise<Order> {
 		}
 	}, {
 		user: recipient,
+		wallet: "G123123123123",
 		type: "spend",
 		meta: {
 			title: "p2p order #2",
@@ -214,10 +216,13 @@ const TABLES = [
 	"user_wallets",
 	"orders_contexts",
 	"orders",
+	"offer_content_translations",
+	"offer_contents",
 	"offers",
 	"users",
 	"assets",
 	"auth_tokens",
+	"applications",
 ];
 
 export async function clearDatabase() {
@@ -248,7 +253,7 @@ export async function signJwt(appId: string, subject: string, payload: object) {
 	});
 }
 
-export async function createApp(appId: string, limits?: LimitConfig): Promise<Application> {
+export async function createApp(limits?: LimitConfig): Promise<Application> {
 	const address = getKeyPair().public;
 	const appConfig: ApplicationConfig = {
 		max_user_wallets: null,
@@ -270,6 +275,7 @@ export async function createApp(appId: string, limits?: LimitConfig): Promise<Ap
 	for (const key of Object.keys(PUBLIC_KEYS)) {
 		jwtPublicKeys[key] = PUBLIC_KEYS[key].key;
 	}
+	const appId = generateId(IdPrefix.App);
 	const app = Application.new({
 		id: appId,
 		name: appId,

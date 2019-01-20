@@ -26,7 +26,7 @@ describe("api tests for /users", async () => {
 	});
 
 	test("user register whitelist", async () => {
-		const myApp = await helpers.createApp(generateId(IdPrefix.App));
+		const myApp = await helpers.createApp();
 		const signInData: WhitelistSignInData = {
 			sign_in_type: "whitelist",
 			api_key: myApp.apiKey,
@@ -102,7 +102,7 @@ describe("api tests for /users", async () => {
 	});
 
 	test("updateUser", async () => {
-		const testApp = await helpers.createApp(generateId(IdPrefix.App));
+		const testApp = await helpers.createApp();
 		const newWalletAddress = "new_address_must_be_56_characters____bla___bla___bla____";
 		const badAddress = "new_address_not_56_chars";
 		const deviceId = "test_device_id";
@@ -137,14 +137,16 @@ describe("api tests for /users", async () => {
 	});
 
 	test("userExists", async () => {
-		const user = await helpers.createUser();
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id });
 		expect(await userExists(user.appId, user.appUserId)).toBeTruthy();
 		expect(await userExists("another-app", user.appUserId)).toBeFalsy();
 		expect(await userExists(user.appId, "another-user-id")).toBeFalsy();
 	});
 
 	test("logout", async () => {
-		const user = await helpers.createUser();
+		const app = await helpers.createApp();
+		const user = await helpers.createUser({ appId: app.id });
 		let token = (await AuthToken.findOne({ userId: user.id }))!;
 		expect(token.valid).toBeTruthy();
 
@@ -159,7 +161,7 @@ describe("api tests for /users", async () => {
 	});
 
 	test("logout through API", async () => {
-		const myApp = await helpers.createApp(IdPrefix.App);
+		const myApp = await helpers.createApp();
 		const signInData: WhitelistSignInData = {
 			sign_in_type: "whitelist",
 			api_key: myApp.apiKey,
@@ -188,7 +190,7 @@ describe("api tests for /users", async () => {
 	});
 
 	test("testSign", async () => {
-		const app = await helpers.createApp(generateId(IdPrefix.App));
+		const app = await helpers.createApp();
 		const payload = { test: "test" };
 		const jwt = await helpers.signJwt(app.id, "subject", payload);
 		const res = await verify<{ test: string }, "test_subject">(jwt);
@@ -199,12 +201,59 @@ describe("api tests for /users", async () => {
 		let jwt: string;
 		let payload: object;
 
-		const app = await helpers.createApp(generateId(IdPrefix.App));
+		const app = await helpers.createApp();
 		payload = {}; // no user_id
 		jwt = await helpers.signJwt(app.id, "subject", payload);
 		await expect(validateRegisterJWT(jwt)).rejects.toThrow();
 
-		payload = { "0": "{", "1": "u", "2": "s", "3": "e", "4": "r", "5": "_", "6": "i", "7": "d", "8": "=", "9": "d", "10": "0", "11": "2", "12": "e", "13": "4", "14": "5", "15": "b", "16": "3", "17": "-", "18": "0", "19": "d", "20": "2", "21": "1", "22": "-", "23": "4", "24": "2", "25": "e", "26": "e", "27": "-", "28": "8", "29": "1", "30": "3", "31": "4", "32": "-", "33": "b", "34": "6", "35": "6", "36": "c", "37": "3", "38": "9", "39": "1", "40": "4", "41": "e", "42": "b", "43": "3", "44": "2", "45": "}" }; // jwt from failed request
+		payload = {
+			"0": "{",
+			"1": "u",
+			"2": "s",
+			"3": "e",
+			"4": "r",
+			"5": "_",
+			"6": "i",
+			"7": "d",
+			"8": "=",
+			"9": "d",
+			"10": "0",
+			"11": "2",
+			"12": "e",
+			"13": "4",
+			"14": "5",
+			"15": "b",
+			"16": "3",
+			"17": "-",
+			"18": "0",
+			"19": "d",
+			"20": "2",
+			"21": "1",
+			"22": "-",
+			"23": "4",
+			"24": "2",
+			"25": "e",
+			"26": "e",
+			"27": "-",
+			"28": "8",
+			"29": "1",
+			"30": "3",
+			"31": "4",
+			"32": "-",
+			"33": "b",
+			"34": "6",
+			"35": "6",
+			"36": "c",
+			"37": "3",
+			"38": "9",
+			"39": "1",
+			"40": "4",
+			"41": "e",
+			"42": "b",
+			"43": "3",
+			"44": "2",
+			"45": "}"
+		}; // jwt from failed request
 		jwt = await helpers.signJwt(app.id, "subject", payload);
 		await expect(validateRegisterJWT(jwt)).rejects.toThrow();
 

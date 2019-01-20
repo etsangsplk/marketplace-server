@@ -25,7 +25,7 @@ describe("api tests for /users", async () => {
 	});
 
 	test("user register whitelist", async () => {
-		const myApp = await helpers.createApp(generateId(IdPrefix.App));
+		const myApp = await helpers.createApp();
 		const signInData: V1WhitelistSignInData = {
 			sign_in_type: "whitelist",
 			api_key: myApp.apiKey,
@@ -92,7 +92,7 @@ describe("api tests for /users", async () => {
 	});
 
 	test("updateUser", async () => {
-		const myApp = await helpers.createApp(generateId(IdPrefix.App));
+		const myApp = await helpers.createApp();
 		const user1 = await helpers.createUser({ appId: myApp.id, createWallet: false });
 		const newWalletAddress = "new_address_must_be_56_characters____bla___bla___bla____";
 		const badAddress = "new_address_not_56_chars";
@@ -121,7 +121,8 @@ describe("api tests for /users", async () => {
 	});
 
 	test("userExists", async () => {
-		const user = await helpers.createUser();
+		const myApp = await helpers.createApp();
+		const user = await helpers.createUser({ appId: myApp.id });
 		expect(await userExists(user.appId, user.appUserId)).toBeTruthy();
 		expect(await userExists("another-app", user.appUserId)).toBeFalsy();
 		expect(await userExists(user.appId, "another-user-id")).toBeFalsy();
